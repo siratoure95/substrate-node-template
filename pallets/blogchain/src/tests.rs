@@ -28,7 +28,8 @@ use frame_support::{assert_noop, assert_ok};
 fn it_works_for_default_value() {
 	new_test_ext().execute_with(|| {
 		// Dispatch a signed extrinsic.
-		let content: Vec<u8> = "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
+		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
+		let content: Vec<u8> =string_message.encode();
 		assert_ok!(BlogModule::create_blog_post(Origin::signed(1), content,0));
 		// Read pallet storage and assert an expected result.
 		// assert_eq!(BlogModule::something(), Some(42));

@@ -118,8 +118,7 @@ impl pallet_blogchain::Config for Test {
 // 	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 // }
 // Build genesis storage according to the mock runtime.
-pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into();
+pub fn new_test_ext() -> sp_io::TestExternalities {
+	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }
-
 //SubstrateKittiesConfig

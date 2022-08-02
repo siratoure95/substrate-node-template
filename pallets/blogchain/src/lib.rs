@@ -32,9 +32,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type CountTotalVotes<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-	#[pallet::storage]
-	pub type Identities<T: Config> = StorageMap<_, Blake2_128Concat, Vec<u8>, u8>;
-	
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	// pub trait Config: frame_system::Config + pallet_template::Config {
@@ -107,12 +104,6 @@ pub mod pallet {
 	pub(super) type BlogPostComments<T: Config> =
         StorageMap<_, Twox64Concat, T::Hash, Vec<BlogPostComment<T>>>; //CountedStorage
 	
-	/// content: Vec<u8>, asset_id : u8
-	#[pallet::storage]
-	#[pallet::getter(fn blog_post_comments)]
-	pub(super) type BlogPostComments<T: Config> =
-        StorageMap<_, Twox64Concat, T::Hash, Vec<u8>>; //CountedStorage
-
 	#[pallet::storage]
 	#[pallet::getter(fn comments_counter)]
 	pub(super) type CounterComments<T: Config> = CountedStorageMap<_, Twox64Concat, T::Hash, Vec<<T as frame_system::Config>::AccountId>>; //CountedStorage
@@ -239,11 +230,7 @@ pub mod pallet {
 
 			Ok(())
 		}
-
-		pub fn set_blog_post(content: Vec<u8>, asset_id : u8){
-			Identities::<T>::insert(content,asset_id);
-		}
-
+		
 		#[pallet::weight(5000)]
 		pub fn create_blog_post_comment(
 				origin: OriginFor<T>,
