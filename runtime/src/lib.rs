@@ -46,6 +46,9 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 
+/// Import the template pallet.
+pub use pallet_blogchain;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -142,6 +145,11 @@ parameter_types! {
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
 		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
 	pub const SS58Prefix: u8 = 42;
+	pub const BlogPostMinBytes: u32 = 64; // <-- new
+	pub const BlogPostMaxBytes: u32 = 4096;// <-- new
+	pub const BlogPostCommentMinBytes: u32 = 64;// <-- new
+	pub const BlogPostCommentMaxBytes: u32 = 1024;// <-- new
+
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -264,8 +272,21 @@ impl pallet_sudo::Config for Runtime {
 
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
-	type Event = Event;
+    type Event = Event;
+    type Currency = Balances;
+    type CatRandomness = RandomnessCollectiveFlip;
+    type MaxCatsOwned = frame_support::pallet_prelude::ConstU32<100>;
 }
+/// Configure the pallet-blogchain in pallets/template.
+impl pallet_blogchain::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances; 
+	type BlogPostMinBytes = BlogPostMinBytes;
+	type BlogPostMaxBytes = BlogPostMaxBytes;
+	type BlogPostCommentMinBytes = BlogPostCommentMinBytes;
+	type BlogPostCommentMaxBytes = BlogPostCommentMaxBytes; 
+}
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -283,7 +304,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		SubstrateKitties: pallet_template,
+		SubstrateBlog: pallet_blogchain,
 	}
 );
 
@@ -329,6 +351,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
 		[pallet_template, TemplateModule]
+		[pallet_blogchain, BlogModule]
 	);
 }
 

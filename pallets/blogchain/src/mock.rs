@@ -1,6 +1,5 @@
-use crate as pallet_template;
-use crate as pallet_template;
-use frame_support::traits::{ConstU16, ConstU64};
+use crate as pallet_blogchain;
+use frame_support::traits::{ConstU16,ConstU32, ConstU64};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -19,7 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		BlogModule: pallet_blogchain::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -50,8 +49,13 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_template::Config for Test {
+impl pallet_blogchain::Config for Test {
 	type Event = Event;
+	type Currency = ();
+	type BlogPostMinBytes = ConstU32<100>;
+	type BlogPostMaxBytes =  ConstU32<100>;
+	type BlogPostCommentMinBytes =  ConstU32<1>;
+	type BlogPostCommentMaxBytes =  ConstU32<1>; 
 }
 
 // Build genesis storage according to the mock runtime.
