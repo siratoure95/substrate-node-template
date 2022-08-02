@@ -274,13 +274,19 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_template::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
-    type CatRandomness = RandomnessCollectiveFlip;
-    type MaxCatsOwned = frame_support::pallet_prelude::ConstU32<100>;
+    type KittyRandomness = RandomnessCollectiveFlip;
+	type MaxKittiesOwned: = frame_support::pallet_prelude::ConstU32<100>;
+    type DogRandomness = RandomnessCollectiveFlip;
+    type MaxDogsOwned = frame_support::pallet_prelude::ConstU32<100>;
 }
 /// Configure the pallet-blogchain in pallets/template.
 impl pallet_blogchain::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances; 
+	type AssetId = AssetId;
+	type MaxKittiesVotesOwned: frame_support::pallet_prelude::ConstU8<5>;
+	type MaxDogsVotesOwned: frame_support::pallet_prelude::ConstU8<5>;
+	type MaxTotalVotes: frame_support::pallet_prelude::ConstU8<10>;
 	type BlogPostMinBytes = BlogPostMinBytes;
 	type BlogPostMaxBytes = BlogPostMaxBytes;
 	type BlogPostCommentMinBytes = BlogPostCommentMinBytes;

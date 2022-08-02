@@ -20,13 +20,17 @@ scale-info = { version = "2.1.1", default-features = false, features = ["derive"
 frame-support = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26"}
 frame-system = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 frame-benchmarking = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26", optional = true }
-pallet-blogchain = { version = "4.0.0-dev", default-features = false, path = "../pallets/blogchain" }
+pallet-balances  =	{ default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26", optional = true }
+serde = { default-features = false, version = "1.0.104", features = ["derive"] }
 
 
 [dev-dependencies]
 sp-core = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 sp-io = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 sp-runtime = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
+pallet-randomness-collective-flip = {  version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26"}
+pallet-balances = {  version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26"}
+
 
 [features]
 default = ["std"]
@@ -36,7 +40,10 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"frame-benchmarking/std",
-	"pallet-blogchain/std",
+	"pallet-balances/std",
+	"pallet-randomness-collective-flip/std",
+	"serde/std",
+
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

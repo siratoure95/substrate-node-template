@@ -1,31 +1,54 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-/// Import the template pallet.
-pub use pallet_blogchain;
+
 pub use pallet::*;
-// mod pallet_blogchain;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+
+
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::pallet_prelude::*;
-    use frame_system::pallet_prelude::*;    
-    use frame_support::traits::{Currency, Randomness};
+    use frame_system::pallet_prelude::*;
 
-    // The basis which we build
+    use frame_support::traits::{Currency, Randomness};
+    
+	#[cfg(feature = "std")]
+	use serde::Serialize;
+    #[cfg(feature = "std")]
+	use serde::Deserialize;
+
+    // The basis which we buil
     #[pallet::pallet]
     pub struct Pallet<T>(_);
-    // Allows easy access our Pallet's `Balance` type. Comes from `Currency` interface.
-    type BalanceOf<T> = <<T as pallet_blogchain::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    // The Gender type used in the `Cat` struct
+
+
+    // Allows easy access our Pallet's `Balance` type. Comes from `Currency` interface.
+    type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+        
+    // The Gender type used in the `Kitty` struct
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     #[derive(Clone, Encode, Decode, PartialEq, Copy, RuntimeDebug, TypeInfo, MaxEncodedLen)]
     pub enum Gender {
         Male,
         Female,
     }
+
     // Struct for holding Dog information
     #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen, Copy)]
     #[scale_info(skip_type_params(T))]
     pub struct Dog<T: Config> {
-        // Using 16 bytes to represent a Dog DNA
+        // Using 16 bytes to represent a kitty DNA
         pub dna: [u8; 16],
         // `None` assumes not for sale
         pub price: Option<BalanceOf<T>>,
@@ -33,205 +56,254 @@ pub mod pallet {
         pub owner: T::AccountId,
     }
 
-    /// Keeps track of the number of Dogs in existence.
+    /// Keeps track of the number of dogs in existence.
     #[pallet::storage]
     pub(super) type CountForDogs<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-    /// Maps the Dog struct to the Dog DNA.
+    /// Maps the kitty struct to the kitty DNA.
     #[pallet::storage]
-    pub(super) type Dogs<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], Cat<T>>;
+    pub(super) type Dogs<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], Dog<T>>;
 
-    /// Track the Dogs owned by each account.
+    /// Track the dogs owned by each account.
     #[pallet::storage]
     pub(super) type DogsOwned<T: Config> = StorageMap<
         _,
         Twox64Concat,
         T::AccountId,
-        BoundedVec<[u8; 16], T::MaxDogsOwned>,
+        BoundedVec<[u8; 16], T::MaxKittiesOwned>,
         ValueQuery,
     >;
-    // Struct for holding Cat information
+
+
+
+    //Kitty 
+    // Struct for holding kitty information
     #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen, Copy)]
     #[scale_info(skip_type_params(T))]
-    pub struct Cat<T: Config> {
-        // Using 16 bytes to represent a Cat DNA
+    pub struct Kitty<T: Config> {
+        // Using 16 bytes to represent a kitty DNA
         pub dna: [u8; 16],
         // `None` assumes not for sale
         pub price: Option<BalanceOf<T>>,
         pub gender: Gender,
         pub owner: T::AccountId,
     }
-    /// Keeps track of the number of Cats in existence.
-    #[pallet::storage]
-    pub(super) type CountForCats<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-    /// Maps the Cat struct to the Cat DNA.
+    /// Keeps track of the number of kitties in existence.
     #[pallet::storage]
-    pub(super) type Cats<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], Cat<T>>;
+    pub(super) type CountForKitties<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-    /// Track the Cats owned by each account.
+    /// Maps the kitty struct to the kitty DNA.
     #[pallet::storage]
-    pub(super) type CatsOwned<T: Config> = StorageMap<
+    pub(super) type Kitties<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], Kitty<T>>;
+
+    /// Track the kitties owned by each account.
+    #[pallet::storage]
+    pub(super) type KittiesOwned<T: Config> = StorageMap<
         _,
         Twox64Concat,
         T::AccountId,
-        BoundedVec<[u8; 16], T::MaxCatsOwned>,
+        BoundedVec<[u8; 16], T::MaxKittiesOwned>,
         ValueQuery,
     >;
-	/// Configuring Your Pallet
-	/// //Buliding pallets include somt custom configs which will allow pallets to gain access 
-	/// to oustide interfaces such as :
-	/// Being able to controlling user balances. 
+
     // Your Pallet's configuration trait, representing custom external types and interfaces.
-    //https://docs.substrate.io/main-docs/build/pallet-coupling/
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_blogchain::Config {
+    pub trait Config: frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Currency: 
-        /// A trait interfaces to access 
-        /// and control user balances. Also gives you 
-        /// access to the Balance type.
-        // type Currency: Currency<Self::AccountId>;
+        /// The Currency handler for the kitties pallet.
+        type Currency: Currency<Self::AccountId>;
 
-        /// Maximum Cats Owned:
-        /// Max number of cats owned in an account
+        /// The maximum amount of kitties a single account can own.
         #[pallet::constant]
-        type MaxCatsOwned: Get<u32>;
+        type MaxKittiesOwned: Get<u32>;
 
         /// The type of Randomness we want to specify for this pallet.
-        type CatRandomness: Randomness<Self::Hash, Self::BlockNumber>;
-        /// Maximum Dogs Owned:
-        /// Max number of dogs owned in an account
+        type KittyRandomness: Randomness<Self::Hash, Self::BlockNumber>;
+
+        //Dog
+        /// The maximum amount of dogs a single account can own.
         #[pallet::constant]
         type MaxDogsOwned: Get<u32>;
 
         /// The type of Randomness we want to specify for this pallet.
         type DogRandomness: Randomness<Self::Hash, Self::BlockNumber>;
-
-        /// The 
     }
+
+
+	// Our pallet's genesis configuration
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub kitties: Vec<(T::AccountId, [u8; 16], Gender)>,
+	}
+
+	// Required to implement default for GenesisConfig
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> GenesisConfig<T> {
+			GenesisConfig { kitties: vec![] }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			// When building a kitty from genesis config, we require the DNA and Gender to be
+			// supplied
+			for (account, dna, gender) in &self.kitties {
+				assert!(Pallet::<T>::mint(account, *dna, *gender).is_ok());
+			}
+		}
+	}
+
 
     // Your Pallet's events.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A new Animal was successfully created.
-        Created { animal: [u8; 16], owner: T::AccountId },
-        /// A Cat was successfully transferred.
-        Transferred { from: T::AccountId, to: T::AccountId, animal: [u8; 16] },
-        /// The price of a Cat was successfully set.
-        PriceSet { animal: [u8; 16], price: Option<BalanceOf<T>> },
-        /// A Animal was successfully sold.
-        Sold { seller: T::AccountId, buyer: T::AccountId, animal: [u8; 16], price: BalanceOf<T> },
+        /// Kitty
+        /// A new kitty was successfully created.
+        CreatedKitty { kitty: [u8; 16], owner: T::AccountId },
+        /// A kitty was successfully transferred.
+        TransferredKitty { from: T::AccountId, to: T::AccountId, kitty: [u8; 16] },
+        /// The price of a kitty was successfully set.
+        PriceSetKitty { kitty: [u8; 16], price: Option<BalanceOf<T>> },
+        /// A kitty was successfully sold.
+        SoldKitty { seller: T::AccountId, buyer: T::AccountId, kitty: [u8; 16], price: BalanceOf<T> },
+        /// Dog
+        /// A new dog was successfully created.
+        CreatedDog { dog: [u8; 16], owner: T::AccountId },
+        /// A dog was successfully transferred.
+        TransferredDog { from: T::AccountId, to: T::AccountId, dog: [u8; 16] },
+        /// The price of a dog was successfully set.
+        PriceSetDog { dog: [u8; 16], price: Option<BalanceOf<T>> },
+        /// A dog was successfully sold.
+        SoldDog { seller: T::AccountId, buyer: T::AccountId, dog: [u8; 16], price: BalanceOf<T> },
     }
 
     // Your Pallet's error messages.
     #[pallet::error]
     pub enum Error<T> {
-        /// An account may only own Animals owned.
+        /// An account may only own `MaxKittiesOwned` kitties.
         TooManyOwned,
-        /// This Animal already exists!
-        DuplicateAnimal,
+        /// This kitty already exists!
+        DuplicateKitty,
+        /// This kitty already exists!
+        DuplicateDog,
         /// An overflow has occurred!
         Overflow,
-        /// This Animal does not exist!
-        NoAnimal,
-        /// You are not the owner of this Animal.
+        /// This kitty does not exist!
+        NoKitty,
+        /// This dog does not exist!
+        NoDog,
+        /// You are not the owner of this kitty/dog.
         NotOwner,
-        /// Trying to transfer or buy a Cat from oneself.
+        /// Trying to transfer or buy a kitty/dog from oneself.
         TransferToSelf,
         /// Ensures that the buying price is greater than the asking price.
         BidPriceTooLow,
-        /// This Cat is not for sale.
+        /// This kitty/dog is not for sale.
         NotForSale,
     }
 
     // Your Pallet's callable functions.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Create a new unique Animal.
+        /// Create a new unique dogs.
         ///
-        /// The actual Animal creation is done in the `mint()` function.
+        /// The actual dog creation is done in the `mint()` function.
         #[pallet::weight(0)]
-        pub fn create(origin: OriginFor<T>) -> DispatchResult {
-            /// Make sure the caller is from a signed origin
+        pub fn create_dog(origin: OriginFor<T>) -> DispatchResult {
+            // Make sure the caller is from a signed origin
             let sender = ensure_signed(origin)?;
 
-            /// Generate unique DNA and Gender using a helper function
-            let (animal_gen_dna, gender) = Self::gen_dna();
+            // Generate unique DNA and Gender using a helper function
+            let (dog_gen_dna, gender) = Self::gen_dna();
 
-            /// Write new Animal to storage by calling helper function
-            Self::mint(&sender, animal_gen_dna, gender)?;
+            // Write new kitty to storage by calling helper function
+            Self::mint(&sender, dog_gen_dna, gender)?;
 
-            let content: Vec<u8>;
-            /// Create a blog for the NFT 
-            // create_blog_post(origin, content);
+            Ok(())
+        }
+        /// Create a new unique kitty.
+        ///
+        /// The actual kitty creation is done in the `mint()` function.
+        #[pallet::weight(0)]
+        pub fn create_kitty(origin: OriginFor<T>) -> DispatchResult {
+            // Make sure the caller is from a signed origin
+            let sender = ensure_signed(origin)?;
+
+            // Generate unique DNA and Gender using a helper function
+            let (kitty_gen_dna, gender) = Self::gen_dna();
+
+            // Write new kitty to storage by calling helper function
+            Self::mint(&sender, kitty_gen_dna, gender)?;
 
             Ok(())
         }
 
-        /// Directly transfer a Animal to another recipient.
+        /// Directly transfer a kitty to another recipient.
         ///
-        /// Any account that holds a Cat can send it to another Account. This will reset the
-        /// asking price of the Cat, marking it not for sale.
+        /// Any account that holds a kitty can send it to another Account. This will reset the
+        /// asking price of the kitty, marking it not for sale.
         #[pallet::weight(0)]
         pub fn transfer(
             origin: OriginFor<T>,
             to: T::AccountId,
-            cat_id: [u8; 16],
+            kitty_id: [u8; 16],
         ) -> DispatchResult {
             // Make sure the caller is from a signed origin
             let from = ensure_signed(origin)?;
-            let cat = Cats::<T>::get(&cat_id).ok_or(Error::<T>::NoAnimal)?;
-            ensure!(cat.owner == from, Error::<T>::NotOwner);
-            Self::do_transfer(cat_id, to)?;
+            let kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+            ensure!(kitty.owner == from, Error::<T>::NotOwner);
+            Self::do_transfer_kitty(kitty_id, to)?;
             Ok(())
         }
 
-        /// Set the price for a Cat.
+        /// Set the price for a kitty.
         ///
-        /// Updates Cat price and updates storage.
+        /// Updates kitty price and updates storage.
         #[pallet::weight(0)]
         pub fn set_price(
             origin: OriginFor<T>,
-            animal_id: [u8; 16],
+            kitty_id: [u8; 16],
             new_price: Option<BalanceOf<T>>,
         ) -> DispatchResult {
             // Make sure the caller is from a signed origin
             let sender = ensure_signed(origin)?;
 
-            // Ensure the Cat exists and is called by the Cat owner
-            let mut cat = Cats::<T>::get(&animal_id).ok_or(Error::<T>::NoAnimal)?;
-            ensure!(cat.owner == sender, Error::<T>::NotOwner);
+            // Ensure the kitty exists and is called by the kitty owner
+            let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+            ensure!(kitty.owner == sender, Error::<T>::NotOwner);
 
             // Set the price in storage
-            cat.price = new_price;
-            Cats::<T>::insert(&animal_id, cat);
+            kitty.price = new_price;
+            Kitties::<T>::insert(&kitty_id, kitty);
 
             // Deposit a "PriceSet" event.
-            Self::deposit_event(Event::PriceSet { animal: animal_id, price: new_price });
+            Self::deposit_event(Event::PriceSetKitty { kitty: kitty_id, price: new_price });
 
             Ok(())
         }
 
-        /// Buy a saleable Cat. The bid price provided from the buyer has to be equal or higher
+        /// Buy a saleable kitty. The bid price provided from the buyer has to be equal or higher
         /// than the ask price from the seller.
         ///
-        /// This will reset the asking price of the Cat, marking it not for sale.
+        /// This will reset the asking price of the kitty, marking it not for sale.
         /// Marking this method `transactional` so when an error is returned, we ensure no storage
         /// is changed.
         #[pallet::weight(0)]
-        pub fn buy(
+        pub fn buy_kitty(
             origin: OriginFor<T>,
-            cat_id: [u8; 16],
+            kitty_id: [u8; 16],
             bid_price: BalanceOf<T>,
         ) -> DispatchResult {
             // Make sure the caller is from a signed origin
             let buyer = ensure_signed(origin)?;
-            // Transfer the Cat from seller to buyer as a sale.
-            Self::do_buy_cat(cat_id, buyer, bid_price)?;
+            // Transfer the kitty from seller to buyer as a sale.
+            Self::do_buy_kitty(kitty_id, buyer, bid_price)?;
 
             Ok(())
         }
@@ -241,14 +313,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         // Generates and returns DNA and Gender
         fn gen_dna() -> ([u8; 16], Gender) {
-            // let _path = Path::new("./pallets/blogchain/src/lib.rs");
-
-
-
             // Create randomness
-            let random = T::CatRandomness::random(&b"dna"[..]).0;
+            let random = T::KittyRandomness::random(&b"dna"[..]).0;
 
-            // Create randomness payload. Multiple Cats can be generated in the same block,
+            // Create randomness payload. Multiple kitties can be generated in the same block,
             // retaining uniqueness.
             let unique_payload = (
                 random,
@@ -268,127 +336,208 @@ pub mod pallet {
             }
         }
 
-        /// Helper to mint a Cat
-        /// https://docs.substrate.io/reference/how-to-guides/basics/mint-basic-tokens/
+        // Helper to mint a dog
+        pub fn mint_dog(
+            owner: &T::AccountId,
+            dna: [u8; 16],
+            gender: Gender,
+        ) -> Result<[u8; 16], DispatchError> {
+            // Create a new object
+            let dog = Dog::<T> { dna, price: None, gender, owner: owner.clone() };
 
+            // Check if the dog does not already exist in our storage map
+            ensure!(!Dogs::<T>::contains_key(&dog.dna), Error::<T>::DuplicateKitty);
+
+            // Performs this operation first as it may fail
+            let count = CountForDogs::<T>::get();
+            let new_count = count.checked_add(1).ok_or(Error::<T>::Overflow)?;
+
+            // Append dog to DogsOwned
+            DogsOwned::<T>::try_append(&owner, dog.dna)
+                .map_err(|_| Error::<T>::TooManyOwned)?;
+
+            // Write new dog to storage
+            Dogs::<T>::insert(dog.dna, dog);
+            CountForDogs::<T>::put(new_count);
+
+            // Deposit our "Created" event.
+            Self::deposit_event(Event::CreatedDog { dog: dna, owner: owner.clone() });
+
+            // Returns the DNA of the new dog if this succeeds
+            Ok(dna)
+        }
+
+        // Helper to mint a kitty
         pub fn mint(
             owner: &T::AccountId,
             dna: [u8; 16],
             gender: Gender,
         ) -> Result<[u8; 16], DispatchError> {
             // Create a new object
-            let cat = Cat::<T> { dna, price: None, gender, owner: owner.clone() };
+            let kitty = Kitty::<T> { dna, price: None, gender, owner: owner.clone() };
 
-            // Check if the Cat does not already exist in our storage map
-            ensure!(!Cats::<T>::contains_key(&cat.dna), Error::<T>::DuplicateAnimal);
+            // Check if the kitty does not already exist in our storage map
+            ensure!(!Kitties::<T>::contains_key(&kitty.dna), Error::<T>::DuplicateKitty);
 
             // Performs this operation first as it may fail
-            let count = CountForCats::<T>::get();
+            let count = CountForKitties::<T>::get();
             let new_count = count.checked_add(1).ok_or(Error::<T>::Overflow)?;
 
-            // Append Cat to CatsOwned
-            CatsOwned::<T>::try_append(&owner, cat.dna)
+            // Append kitty to KittiesOwned
+            KittiesOwned::<T>::try_append(&owner, kitty.dna)
                 .map_err(|_| Error::<T>::TooManyOwned)?;
 
-            // Write new Cat to storage
-            Cats::<T>::insert(cat.dna, cat);
-            CountForCats::<T>::put(new_count);
+            // Write new kitty to storage
+            Kitties::<T>::insert(kitty.dna, kitty);
+            CountForKitties::<T>::put(new_count);
 
             // Deposit our "Created" event.
-            Self::deposit_event(Event::Created { animal: dna, owner: owner.clone() });
+            Self::deposit_event(Event::CreatedKitty { kitty: dna, owner: owner.clone() });
 
-            // Returns the DNA of the new Cat if this succeeds
+            // Returns the DNA of the new kitty if this succeeds
             Ok(dna)
         }
 
-        // Update storage to transfer Cat
-        pub fn do_transfer(
-            animal_id: [u8; 16],
+        // Update storage to transfer kitty
+        pub fn do_transfer_kitty(
+            kitty_id: [u8; 16],
             to: T::AccountId,
         ) -> DispatchResult {
-            // Get the Cat
-            let mut cat = Cats::<T>::get(&animal_id).ok_or(Error::<T>::NoAnimal)?;
-            let from = cat.owner;
+            // Get the kitty
+            let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+            let from = kitty.owner;
 
             ensure!(from != to, Error::<T>::TransferToSelf);
-            let mut from_owned = CatsOwned::<T>::get(&from);
+            let mut from_owned = KittiesOwned::<T>::get(&from);
 
-            // Remove Cat from list of owned Cats.
-            if let Some(ind) = from_owned.iter().position(|&id| id == animal_id) {
+            // Remove kitty from list of owned kitties.
+            if let Some(ind) = from_owned.iter().position(|&id| id == kitty_id) {
                 from_owned.swap_remove(ind);
             } else {
-                return Err(Error::<T>::NoAnimal.into())
+                return Err(Error::<T>::NoKitty.into())
             }
 
-            // Add Cat to the list of owned Cats.
-            let mut to_owned = CatsOwned::<T>::get(&to);
-            to_owned.try_push(animal_id).map_err(|()| Error::<T>::TooManyOwned)?;
+            // Add kitty to the list of owned kitties.
+            let mut to_owned = KittiesOwned::<T>::get(&to);
+            to_owned.try_push(kitty_id).map_err(|()| Error::<T>::TooManyOwned)?;
 
-            // Transfer succeeded, update the Cat owner and reset the price to `None`.
-            cat.owner = to.clone();
-            cat.price = None;
+            // Transfer succeeded, update the kitty owner and reset the price to `None`.
+            kitty.owner = to.clone();
+            kitty.price = None;
 
             // Write updates to storage
-            Cats::<T>::insert(&animal_id, cat);
-            CatsOwned::<T>::insert(&to, to_owned);
-            CatsOwned::<T>::insert(&from, from_owned);
+            Kitties::<T>::insert(&kitty_id, kitty);
+            KittiesOwned::<T>::insert(&to, to_owned);
+            KittiesOwned::<T>::insert(&from, from_owned);
 
-            Self::deposit_event(Event::Transferred { from, to, animal: animal_id });
+            Self::deposit_event(Event::TransferredKitty { from, to, kitty: kitty_id });
 
             Ok(())
         }
 
-        // A helper function for purchasing a Cat
-        pub fn do_buy_cat(
-            animal_id: [u8; 16],
+        // A helper function for purchasing a kitty
+        pub fn do_buy_kitty(
+            kitty_id: [u8; 16],
             to: T::AccountId,
             bid_price: BalanceOf<T>,
         ) -> DispatchResult {
-
-            // Get the Cat
-            let mut cat = Cats::<T>::get(&animal_id).ok_or(Error::<T>::NoAnimal)?;
-            let from = cat.owner;
+            // Get the kitty
+            let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+            let from = kitty.owner;
 
             ensure!(from != to, Error::<T>::TransferToSelf);
-            let mut from_owned = CatsOwned::<T>::get(&from);
+            let mut from_owned = KittiesOwned::<T>::get(&from);
 
-            // Remove Cat from list of owned Cats.
-            if let Some(ind) = from_owned.iter().position(|&id| id == animal_id) {
+            // Remove kitty from list of owned kitties.
+            if let Some(ind) = from_owned.iter().position(|&id| id == kitty_id) {
                 from_owned.swap_remove(ind);
             } else {
-                return Err(Error::<T>::NoAnimal.into())
+                return Err(Error::<T>::NoKitty.into())
             }
 
-            // Add Cat to the list of owned Cats.
-            let mut to_owned = CatsOwned::<T>::get(&to);
-            to_owned.try_push(animal_id).map_err(|()| Error::<T>::TooManyOwned)?;
+            // Add kitty to the list of owned kitties.
+            let mut to_owned = KittiesOwned::<T>::get(&to);
+            to_owned.try_push(kitty_id).map_err(|()| Error::<T>::TooManyOwned)?;
 
             // Mutating state here via a balance transfer, so nothing is allowed to fail after this.
-            if let Some(price) = cat.price {
+            if let Some(price) = kitty.price {
                 ensure!(bid_price >= price, Error::<T>::BidPriceTooLow);
                 // Transfer the amount from buyer to seller
                 T::Currency::transfer(&to, &from, price, frame_support::traits::ExistenceRequirement::KeepAlive)?;
                 // Deposit sold event
-                Self::deposit_event(Event::Sold {
+                Self::deposit_event(Event::SoldKitty {
                     seller: from.clone(),
                     buyer: to.clone(),
-                    animal: animal_id,
+                    kitty: kitty_id,
                     price,
                 });
             } else {
                 return Err(Error::<T>::NotForSale.into())
             }
 
-            // Transfer succeeded, update the Cat owner and reset the price to `None`.
-            cat.owner = to.clone();
-            cat.price = None;
+            // Transfer succeeded, update the kitty owner and reset the price to `None`.
+            kitty.owner = to.clone();
+            kitty.price = None;
 
             // Write updates to storage
-            Cats::<T>::insert(&animal_id, cat);
-            CatsOwned::<T>::insert(&to, to_owned);
-            CatsOwned::<T>::insert(&from, from_owned);
+            Kitties::<T>::insert(&kitty_id, kitty);
+            KittiesOwned::<T>::insert(&to, to_owned);
+            KittiesOwned::<T>::insert(&from, from_owned);
 
-            Self::deposit_event(Event::Transferred { from, to, animal: animal_id });
+            Self::deposit_event(Event::TransferredKitty { from, to, kitty: kitty_id });
+
+            Ok(())
+        }
+        // A helper function for purchasing a dog
+        pub fn do_buy_dog(
+            dog_id: [u8; 16],
+            to: T::AccountId,
+            bid_price: BalanceOf<T>,
+        ) -> DispatchResult {
+            // Get the dog
+            let mut dog = Dogs::<T>::get(&dog_id).ok_or(Error::<T>::NoKitty)?;
+            let from = dog.owner;
+
+            ensure!(from != to, Error::<T>::TransferToSelf);
+            let mut from_owned = DogsOwned::<T>::get(&from);
+
+            // Remove kitty from list of owned kitties.
+            if let Some(ind) = from_owned.iter().position(|&id| id == dog_id) {
+                from_owned.swap_remove(ind);
+            } else {
+                return Err(Error::<T>::NoDog.into())
+            }
+
+            // Add kitty to the list of owned kitties.
+            let mut to_owned = KittiesOwned::<T>::get(&to);
+            to_owned.try_push(dog_id).map_err(|()| Error::<T>::TooManyOwned)?;
+
+            // Mutating state here via a balance transfer, so nothing is allowed to fail after this.
+            if let Some(price) = dog.price {
+                ensure!(bid_price >= price, Error::<T>::BidPriceTooLow);
+                // Transfer the amount from buyer to seller
+                T::Currency::transfer(&to, &from, price, frame_support::traits::ExistenceRequirement::KeepAlive)?;
+                // Deposit sold event
+                Self::deposit_event(Event::SoldKitty {
+                    seller: from.clone(),
+                    buyer: to.clone(),
+                    kitty: dog_id,
+                    price,
+                });
+            } else {
+                return Err(Error::<T>::NotForSale.into())
+            }
+
+            // Transfer succeeded, update the kitty owner and reset the price to `None`.
+            dog.owner = to.clone();
+            dog.price = None;
+
+            // Write updates to storage
+            Dogs::<T>::insert(&dog_id, dog);
+            DogsOwned::<T>::insert(&to, to_owned);
+            DogsOwned::<T>::insert(&from, from_owned);
+
+            Self::deposit_event(Event::TransferredKitty { from, to, kitty: dog_id });
 
             Ok(())
         }
