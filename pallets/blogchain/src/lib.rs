@@ -58,6 +58,22 @@ pub mod pallet {
         type BlogPostCommentMaxBytes: Get<u32>; 
 	}
 
+	// // Our pallet's genesis configuration
+	// #[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		//pub blogger: Vec<(T::AccountId, [u8; 16], Gender)>,
+		//create_blog_post(origin: OriginFor<T>, content: Vec<u8>,_asset_id : u8) 
+		pub blogger: Vec<(OriginFor<T>, Vec<u8>, u8)>,
+	}
+
+	// Required to implement default for GenesisConfig
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> GenesisConfig<T> {
+			GenesisConfig { blogger: vec![] }
+		}
+	}
+
 	#[derive(Encode, Decode,TypeInfo)]
 	#[scale_info(skip_type_params(T))]
 	pub struct BlogPost<T: Config> {
@@ -73,21 +89,6 @@ pub mod pallet {
 			pub author: <T as frame_system::Config>::AccountId,
 	}
 
-	#[derive( Encode, Decode, TypeInfo)]
-	#[scale_info(skip_type_params(T))]
-	pub struct CommentVoting<T: Config> {
-		//Vec of the blog_post_id with the commenter id
-		// pub blog_comment_id_identity : vec![T::AccountId],
-		pub blog_comment_id_identity : Vec<T::AccountId>,
-		pub blog_post_id_identity : Vec<T::Hashing>,
-		//Asset number aka if its a Kitty or Dog
-		pub blog_asset_number_vec: Vec<u8>,
-		//Vector of the blog_id
-		pub blog_id_post_vec :  Vec<T::Hashing>,
-		pub blog_id_post_comment_vote: Vec<u8>,
-		//owner of blog
-		pub owner: T::AccountId,
-	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -103,9 +104,10 @@ pub mod pallet {
 	pub type Something<T> = StorageValue<_, u32>;
 
 	// /// Maps the kitty struct to the kitty DNA.
-	// #[pallet::storage]
-	// #[pallet::getter(fn comment_votings)]
-	// pub(super) type CommentVotings<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], CommentVoting<T>>;
+	#[pallet::storage]
+	#[pallet::getter(fn comment_votings)]
+	pub(super) type 
+	CommenterVote<T: Config> = StorageMap<_, Twox64Concat, T::Hash, Vec<<T as frame_system::Config>::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn blog_posts)]
@@ -115,6 +117,11 @@ pub mod pallet {
 	#[pallet::getter(fn blog_post_comments)]
 	pub(super) type BlogPostComments<T: Config> =
         StorageMap<_, Twox64Concat, T::Hash, Vec<BlogPostComment<T>>>; //CountedStorage
+
+	#[pallet::storage]
+	#[pallet::getter(fn comments_counter)]
+	pub(super) type CounterComments<T: Config> =
+		CountedStorageMap<_, Twox64Concat, T::Hash, Vec<<T as frame_system::Config>::AccountId>>; //CountedStorage
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -184,10 +191,8 @@ pub mod pallet {
 		#[transactional]
 		pub fn create_blog_post(origin: OriginFor<T>, content: Vec<u8>,_asset_id : u8) -> DispatchResult {
 
-			let author = ensure_signed(origin)?;
-			// let commentervoter = CommentVotings::<T>::get(&_asset_id).ok_or(Error::<T>::NotTheBlogPoster)?;
-			// ensure!(commentervoter.owner == author, Error::<T>::NotTheBlogPoster);
-			// CommentVoting::blog_id_post_vec.push(author);
+			let author = ensure_signed(origin.clone())?;
+			
 			ensure!(
 					(content.len() as u32) > T::BlogPostMinBytes::get(),
 					<Error<T>>::BlogPostNotEnoughBytes
@@ -212,18 +217,11 @@ pub mod pallet {
 			
 			if _asset_id == 0{
 				//kitties
-				let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin);
-				// let kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
-				// ensure!(kitty.owner == from, Error::<T>::NotOwner);
-				let blog_author = CommentVoting::<T>::blog_comment_id_identity.push(author);
-				// ensure!(
-				// 		(blog_comment_id_identity.len() as u32) > T::NotTheBlogPoster::get(),
-				// 		<Error<T>>::BlogPostCommentNotEnoughBytes
-				// );
+				let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin.clone());
 			}
 			else if _asset_id == 1 {
 				//dog
-				let _result_dog = pallet_template::Pallet::<T>::create_kitty(origin);
+				let _result_dog = pallet_template::Pallet::<T>::create_dog(origin.clone());
 			}
 			else if _asset_id <  0 {
 				ensure!(
@@ -255,7 +253,9 @@ pub mod pallet {
 				blog_post_id: T::Hash,
 				//assset to select dog and cat
 				_asset_id : u8,
-		) -> DispatchResult {
+		) -> DispatchResult{
+			let mut kitties_counter_comment = 0;
+			let mut dogs_counter_comment = 0;
 			let comment_author = ensure_signed(origin.clone())?;
 
 			ensure!(
@@ -294,11 +294,33 @@ pub mod pallet {
 			pub const MAX_TOTAL_DOGS_VOTES: u64 = 5;
 			if _asset_id == 0{
 				//kitties
-				 let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin);
+				 let author = ensure_signed(origin.clone())?;
+				 let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin.clone());
+				 let mut kitty_comment_vec: Vec<<T as frame_system::Config>::AccountId> = Vec::new();
+				 kitty_comment_vec.push(author);
+				 <CommenterVote<T>>::insert(blog_post_id, kitty_comment_vec);
+				 let author = ensure_signed(origin.clone())?;
+				 let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin.clone());
+				 let mut kitty_comment_vec: Vec<<T as frame_system::Config>::AccountId> = Vec::new();
+				 kitty_comment_vec.push(author);
+				 <CounterComments<T>>::insert(blog_post_id, kitty_comment_vec.clone());
 			}
 			else if _asset_id == 1 {
+				//dogs
+				let author = ensure_signed(origin.clone())?;
+				let _result_dog = pallet_template::Pallet::<T>::create_dog(origin.clone());
+				let mut dog_comment_vec: Vec<<T as frame_system::Config>::AccountId> = Vec::new();
+				dog_comment_vec.push(author);
+				<CommenterVote<T>>::insert(blog_post_id, dog_comment_vec);
+				let author = ensure_signed(origin.clone())?;
+				let _result_dog = pallet_template::Pallet::<T>::create_dog(origin.clone());
+				let mut dog_comment_vec: Vec<<T as frame_system::Config>::AccountId> = Vec::new();
+				dog_comment_vec.push(author);
+				<CounterComments<T>>::insert(blog_post_id, dog_comment_vec.clone());
+
+
 				//dog
-				let _result_dog = pallet_template::Pallet::<T>::create_kitty(origin);
+				let _result_dog = pallet_template::Pallet::<T>::create_kitty(origin.clone());
 			}
 			else if _asset_id <  0 {
 				ensure!(
@@ -319,8 +341,7 @@ pub mod pallet {
 				);
 
 			}
-			let mut kitties_counter_comment = 0;
-			let mut dogs_counter_comment = 0;
+
 			if _asset_id == 0{
 				//kitties
 				// Performs this operation first as it may fail
@@ -336,8 +357,6 @@ pub mod pallet {
 				kitties_counter_comment = new_count;
 				// Write new kitty vote to storage
 				CountForKittiesVotes::<T>::put(new_count);
-				// Vote_Kitties = Vote_Kitties +1;
-				// Vote_Total = Vote_Total + 1;
 				// Performs total vote counter
 				let count = CountTotalVotes::<T>::get();
 				let new_count = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
@@ -401,20 +420,18 @@ pub mod pallet {
 				);
 
 			}
-
-			// If blogger has 2 different comments then they get the oopposite NFT
-			// IF blogger minted a kity NFT then they would get the dog NFT
-			// IF blogger minted a dog NFT then they would get the kitty NFT
-			// kitties_counter_comment
-			// dogs_counter_comment
-			// if(kitties_counter_comment == 2){
-			// 	mint(
-			// 		owner: &T::AccountId,
-			// 		dna: [u8; 16],
-			// 		gender: Gender,
-			// 	) 
-
-			// }
+			/*We are going to see which blogger gets to 5 votes first. 
+				Which ever blogger gets to 10 comments votes first will win  
+				or the blogger with the highest blog amount will win. If 
+				blogger has 2 different comments then they get the oopposite NFT.
+				If blogger minted a kity NFT then they would get the dog NFT.
+				IF blogger minted a dog NFT then they would get the kitty NFTt*/
+				let blogger_voters = CommenterVote::<T>::get(blog_post_id);
+				let blogger_comment_voters = CounterComments::<T>::get(blog_post_id);
+				for i in blogger_comment_voters {
+					println!("{:?}", i);
+					
+				}
 
 
 			Ok(())

@@ -113,7 +113,47 @@ impl pallet_blogchain::Config for Test {
 	type BlogPostCommentMinBytes = BlogPostCommentMinBytes;
 	type BlogPostCommentMaxBytes = BlogPostCommentMaxBytes;
 }
+// // Build genesis storage according to the mock runtime.
+// pub fn new_test_ext() -> sp_io::TestExternalities {
+// 	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+// }
 // Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+pub(crate) fn new_test_ext(users:OriginFor<T>, Vec<u8>, u8) -> sp_io::TestExternalities {
+	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	GenesisConfig {
+		//
+		balances: BalancesConfig {
+			balances: users.iter().map(|(user, _, _)| (*user, 10)).collect(),
+		},
+		substrate_blog: SubstrateBlogConfig {
+			blogs: users.iter().map(|(user, kitty, gender)| (*user, *kitty, *gender)).collect(),
+		},
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| System::set_block_number(1));
+	ext
 }
+// pub fn new_test_ext(users:OriginFor<T>, Vec<u8>, u8) -> sp_io::TestExternalities {
+// 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+// 	GenesisConfig {
+// 		//
+// 		balances: BalancesConfig {
+// 			balances: users.iter().map(|(user, _, _)| (*user, 10)).collect(),
+// 		},
+// 		substrate_blog: SubstrateBlogConfig {
+// 			blogs: users.iter().map(|(user, blogmade, gender)| (*user, *blogmade, *gender)).collect(),
+// 		},
+// 		..Default::default()
+// 	}
+// 	.assimilate_storage(&mut t)
+// 	.unwrap();
+
+// 	let mut ext = sp_io::TestExternalities::new(t);
+// 	ext.execute_with(|| System::set_block_number(1));
+// 	ext
+// }
+//SubstrateKittiesConfig

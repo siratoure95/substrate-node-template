@@ -153,6 +153,6 @@ fn testnet_genesis(
 		},
 		transaction_payment: Default::default(),
 		substrate_kitties: SubstrateKittiesConfig { kitties: vec![] },
-		substrate_kitties: SubstrateBlogConfig { blogs: vec![] },
+		substrate_blog: SubstrateBlogConfig { blogs: vec![] },
 	}
 }
