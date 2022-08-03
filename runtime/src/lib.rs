@@ -22,6 +22,8 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+// use frame_support::traits::ConstU8;
+// use sp_runtime::traits::ConstU8;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -283,10 +285,9 @@ impl pallet_template::Config for Runtime {
 impl pallet_blogchain::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances; 
-	type AssetId = AssetId;
-	type MaxKittiesVotesOwned: frame_support::pallet_prelude::ConstU8<5>;
-	type MaxDogsVotesOwned: frame_support::pallet_prelude::ConstU8<5>;
-	type MaxTotalVotes: frame_support::pallet_prelude::ConstU8<10>;
+	type MaxKittiesVotesOwned =ConstU32<5>;
+	type MaxDogsVotesOwned=  ConstU32<5>;
+	type MaxTotalVotes = ConstU32<10>;
 	type BlogPostMinBytes = BlogPostMinBytes;
 	type BlogPostMaxBytes = BlogPostMaxBytes;
 	type BlogPostCommentMinBytes = BlogPostCommentMinBytes;

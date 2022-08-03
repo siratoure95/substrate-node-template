@@ -66,6 +66,7 @@ std = [
 	"frame-system/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
+	"pallet-blogchain/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-sudo/std",

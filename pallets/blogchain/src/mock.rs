@@ -104,7 +104,6 @@ parameter_types! {
 impl pallet_blogchain::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
-	type AssetId = AssetId;
 	type MaxKittiesVotesOwned = MaxKittiesVotesOwned;
 	type MaxDogsVotesOwned = MaxDogsVotesOwned;
 	type MaxTotalVotes = MaxTotalVotes;

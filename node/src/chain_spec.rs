@@ -1,6 +1,6 @@
 use node_template_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY,SubstrateKittiesConfig,SubstrateBlogConfig,
+	SystemConfig, WASM_BINARY,SubstrateKittiesConfig,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -153,6 +153,5 @@ fn testnet_genesis(
 		},
 		transaction_payment: Default::default(),
 		substrate_kitties: SubstrateKittiesConfig { kitties: vec![] },
-		substrate_blog: SubstrateBlogConfig { blogs: vec![] },
 	}
 }
