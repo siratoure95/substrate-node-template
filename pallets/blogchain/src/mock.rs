@@ -98,7 +98,7 @@ parameter_types! {
 	pub const BlogPostMaxBytes: u32 = 4096;
 	pub const BlogPostCommentMinBytes: u32 = 64;
 	pub const BlogPostCommentMaxBytes: u32 = 1024;
-	pub const AssetId: u8 = 0;
+	pub const AssetId: u64 = 0;
 	pub const MaxTotalVotes: u32 = 20;
 }
 impl pallet_blogchain::Config for Test {

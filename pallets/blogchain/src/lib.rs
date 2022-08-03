@@ -22,6 +22,9 @@ pub mod pallet {
 
 	/// Keeps track of the number of kitties in existence.
 	#[pallet::storage]
+	pub(super) type AseetIDNFT<T: Config> = StorageValue<_, u64, ValueQuery>;
+	/// Keeps track of the number of kitties in existence.
+	#[pallet::storage]
 	pub(super) type CountForKittiesVotes<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	/// Keeps track of the number of dogs in existence.
@@ -39,7 +42,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Currency: Currency<Self::AccountId>; 
-        type AssetId: Get<u8>;
+        type AssetId: Get<u64>;
 		/// The maximum amount of kitties a single account can own.
 		 #[pallet::constant]
         type MaxKittiesVotesOwned: Get<u32>;
@@ -57,6 +60,7 @@ pub mod pallet {
         #[pallet::constant]
         type BlogPostCommentMaxBytes: Get<u32>; 
 	}
+
 
 
 
@@ -177,7 +181,8 @@ pub mod pallet {
 		pub fn create_blog_post(origin: OriginFor<T>, content: Vec<u8>,_asset_id : u8) -> DispatchResult {
 
 			let author = ensure_signed(origin.clone())?;
-			
+			println!("Author {:?}",author);
+			println!("Content {:?}",content.len());
 			ensure!(
 					(content.len() as u32) > T::BlogPostMinBytes::get(),
 					<Error<T>>::BlogPostNotEnoughBytes
@@ -187,47 +192,43 @@ pub mod pallet {
 					(content.len() as u32) < T::BlogPostMaxBytes::get(),
 					<Error<T>>::BlogPostTooManyBytes
 			);
-
+			
 			let blog_post = BlogPost { content: content.clone(), author: author.clone() };
-
+			// println!("blog_post {:?}",blog_post);
 			let blog_post_id = T::Hashing::hash_of(&blog_post);
-
+			println!("blog_post_id {:?}",blog_post_id);
 			<BlogPosts<T>>::insert(blog_post_id, blog_post);
-
 			let comments_vec: Vec<BlogPostComment<T>> = Vec::new();
+			println!("2. blog_post_id {:?}",blog_post_id);
 			<BlogPostComments<T>>::insert(blog_post_id, comments_vec);
-
-			Self::deposit_event(Event::BlogPostCreated(content, author, blog_post_id));
+			println!("1. blog_post_id {:?}",blog_post_id);
 			
 			
 			if _asset_id == 0{
 				//kitties
+				println!("Create Kitt");
 				let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin.clone());
+				println!("_result_kitty {:?}",_result_kitty);
+				let count = AseetIDNFT::<T>::get();
+				AseetIDNFT::<T>::put(0);
+
 			}
 			else if _asset_id == 1 {
 				//dog
 				let _result_dog = pallet_template::Pallet::<T>::create_dog(origin.clone());
-			}
-			else if _asset_id <  0 {
-				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooLow
-				);
-			}
-			else if _asset_id >  1 {
-				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooHigh
-				);
+				println!("_result_dog {:?}",_result_dog);
+				let count = AseetIDNFT::<T>::get();
+				AseetIDNFT::<T>::put(1);
+
 			}
 			else{
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisNotValidate
 				);
 
 			}		
-
+			Self::deposit_event(Event::BlogPostCreated(content, author, blog_post_id));
 			Ok(())
 		}
 		
@@ -277,6 +278,8 @@ pub mod pallet {
 			pub const MAX_TOTAL_VOTES: u64 = 10;
 			pub const MAX_TOTAL_KITTIES_VOTES: u64 = 5;
 			pub const MAX_TOTAL_DOGS_VOTES: u64 = 5;
+
+			let _asset_id = AseetIDNFT::<T>::get();
 			if _asset_id == 0{
 				//kitties
 				 let author = ensure_signed(origin.clone())?;
@@ -309,19 +312,19 @@ pub mod pallet {
 			}
 			else if _asset_id <  0 {
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisTooLow
 				);
 			}
 			else if _asset_id >  1 {
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisTooHigh
 				);
 			}
 			else{
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisNotValidate
 				);
 
@@ -388,19 +391,19 @@ pub mod pallet {
 
 			else if _asset_id <  0 {
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisTooLow
 				);
 			}
 			else if _asset_id >  1 {
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisTooHigh
 				);
 			}
 			else{
 				ensure!(
-					(_asset_id as u8) > T::AssetId::get(),
+					(_asset_id as u64) > T::AssetId::get(),
 					<Error<T>>::AssetIDisNotValidate
 				);
 
@@ -429,10 +432,14 @@ pub mod pallet {
 				amount: <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance,
 		) -> DispatchResult {
 				let tipper = ensure_signed(origin)?;
+				println!("tipper = {:?}",tipper);
+				println!("blog_post_id = {:?}",blog_post_id);
+				println!("amount = {:?}",amount);
 
 				let blog_post = Self::blog_posts(&blog_post_id).ok_or(<Error<T>>::BlogPostNotFound)?;
+				println!("blog_post_id = {:?}",blog_post_id);
 				let blog_post_author = blog_post.author;
-
+				println!("blog_post_author = {:?}",blog_post_author);
 				ensure!(tipper != blog_post_author, <Error<T>>::TipperIsAuthor);
 
 				<T as Config>::Currency::transfer(

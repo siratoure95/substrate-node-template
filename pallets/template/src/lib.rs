@@ -96,6 +96,7 @@ pub mod pallet {
 
     /// Maps the kitty struct to the kitty DNA.
     #[pallet::storage]
+    #[pallet::getter(fn kitties)]
     pub(super) type Kitties<T: Config> = StorageMap<_, Twox64Concat, [u8; 16], Kitty<T>>;
 
     /// Track the kitties owned by each account.
@@ -233,15 +234,16 @@ pub mod pallet {
         /// The actual kitty creation is done in the `mint()` function.
         #[pallet::weight(0)]
         pub fn create_kitty(origin: OriginFor<T>) -> DispatchResult {
+            println!("Create sender author");
             // Make sure the caller is from a signed origin
             let sender = ensure_signed(origin)?;
-
+            println!("Create sender finsihed");
             // Generate unique DNA and Gender using a helper function
             let (kitty_gen_dna, gender) = Self::gen_dna();
-
+            println!("Create DNA finsihed");
             // Write new kitty to storage by calling helper function
             Self::mint(&sender, kitty_gen_dna, gender)?;
-
+            println!("Create mint finsihed");
             Ok(())
         }
 
@@ -315,8 +317,10 @@ pub mod pallet {
         // Generates and returns DNA and Gender
         fn gen_dna() -> ([u8; 16], Gender) {
             // Create randomness
-            let random = T::KittyRandomness::random(&b"dna"[..]).0;
-
+            println!("random");
+            // let random = T::KittyRandomness::random(&b"dna"[..]).0;
+            let random = 0;
+            println!("random {:?}",random);
             // Create randomness payload. Multiple kitties can be generated in the same block,
             // retaining uniqueness.
             let unique_payload = (
@@ -324,11 +328,12 @@ pub mod pallet {
                 frame_system::Pallet::<T>::extrinsic_index().unwrap_or_default(),
                 frame_system::Pallet::<T>::block_number(),
             );
-
+            println!("unique_payload {:?}",unique_payload);
             // Turns into a byte array
             let encoded_payload = unique_payload.encode();
+            println!("encoded_payload {:?}",encoded_payload);
             let hash = frame_support::Hashable::blake2_128(&encoded_payload);
-
+            println!("hash {:?}",hash);
             // Generate Gender
             if hash[0] % 2 == 0 {
                 (hash, Gender::Male)
