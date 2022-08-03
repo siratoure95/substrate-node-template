@@ -197,7 +197,8 @@ pub mod pallet {
 			// println!("blog_post {:?}",blog_post);
 			let blog_post_id = T::Hashing::hash_of(&blog_post);
 			println!("blog_post_id {:?}",blog_post_id);
-			<BlogPosts<T>>::insert(blog_post_id, blog_post);
+			let res = <BlogPosts<T>>::insert(blog_post_id, blog_post);
+			let encoded_blogpost = BlogPosts::<T>::get(blog_post_id);
 			let comments_vec: Vec<BlogPostComment<T>> = Vec::new();
 			println!("2. blog_post_id {:?}",blog_post_id);
 			<BlogPostComments<T>>::insert(blog_post_id, comments_vec);
@@ -237,8 +238,6 @@ pub mod pallet {
 				origin: OriginFor<T>,
 				content: Vec<u8>,
 				blog_post_id: T::Hash,
-				//assset to select dog and cat
-				_asset_id : u8,
 		) -> DispatchResult{
 			let mut kitties_counter_comment = 0;
 			let mut dogs_counter_comment = 0;
