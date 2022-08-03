@@ -86,10 +86,22 @@ fn it_works_for_blog_comment() {
 	new_test_ext().execute_with(|| {
 		// Dispatch a signed extrinsic.
 		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
-		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
 		assert_ok!(BlogModule::create_blog_post(Origin::signed(1), string_message.encode(),0));
+		let content = string_message.encode();
+		
+		let hash_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
+		let blog_post_id = <Test as frame_system::Config>::Hashing::hash_of(&string_message.encode());
+		
+		let encoded_blogpost = BlogPosts::<Test>::get(blog_post_id);
+		let decoded_blogpost = encoded_blogpost.encode();
+		let decoded_blogpost1 =vec![0];
+
+		let final_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
+		assert_eq!(decoded_blogpost,decoded_blogpost1);
+
+		///
 		let hash = H256::zero();
-		assert_ok!(BlogModule::create_blog_post_comment(Origin::signed(1), string_message.encode(),hash));
+		assert_ok!(BlogModule::create_blog_post_comment(Origin::signed(1), string_message.encode(),blog_post_id));
 	});
 }
 
@@ -163,3 +175,13 @@ fn correct_error_blog__not_good_Tip_value() {
 	});
 }
 
+//Create Blog comment correctly Asset  ID wrong, Invalid 
+#[test]
+fn it_works_for_blog_comment_asset_id() {
+	new_test_ext().execute_with(|| {
+		// Dispatch a signed extrinsic.
+		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
+		/// Asset id  = 3,  asset high 
+		assert_noop!(BlogModule::create_blog_post(Origin::signed(1), string_message.encode(),10), Error::<Test>::AssetIDisNotValidate);
+	});
+}

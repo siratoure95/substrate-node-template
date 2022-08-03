@@ -22,7 +22,7 @@ pub mod pallet {
 
 	/// Keeps track of the number of kitties in existence.
 	#[pallet::storage]
-	pub(super) type AseetIDNFT<T: Config> = StorageValue<_, u64, ValueQuery>;
+	pub(super) type AssetIDNFT<T: Config> = StorageValue<_, u64, ValueQuery>;
 	/// Keeps track of the number of kitties in existence.
 	#[pallet::storage]
 	pub(super) type CountForKittiesVotes<T: Config> = StorageValue<_, u64, ValueQuery>;
@@ -125,6 +125,10 @@ pub mod pallet {
 		BlogPostCreated(Vec<u8>, T::AccountId, T::Hash),
         BlogPostCommentCreated(Vec<u8>, T::AccountId, T::Hash),
         Tipped(T::AccountId, T::Hash),
+		//Total Kitties
+        KittiesVoted(T::AccountId, T::Hash),
+		//Total Dogs
+        DogsVoted(T::AccountId, T::Hash),
 	}
 
 	// Errors inform users that something went wrong.
@@ -142,8 +146,6 @@ pub mod pallet {
         BlogPostCommentTooManyBytes,
         BlogPostNotFound,
         TipperIsAuthor,
-		AssetIDisTooHigh,
-		AssetIDisTooLow,
 		AssetIDisNotValidate,
 		TooManyVotes,
 		Not5CommentsNotFromAuthor,
@@ -178,7 +180,10 @@ pub mod pallet {
 
 		#[pallet::weight(10000)]
 		#[transactional]
-		pub fn create_blog_post(origin: OriginFor<T>, content: Vec<u8>,_asset_id : u8) -> DispatchResult {
+		pub fn create_blog_post(
+			origin: OriginFor<T>, 
+			content: Vec<u8>,
+			_asset_id : u8) -> DispatchResult {
 
 			let author = ensure_signed(origin.clone())?;
 			println!("Author {:?}",author);
@@ -210,29 +215,58 @@ pub mod pallet {
 				println!("Create Kitt");
 				let _result_kitty = pallet_template::Pallet::<T>::create_kitty(origin.clone());
 				println!("_result_kitty {:?}",_result_kitty);
-				let count = AseetIDNFT::<T>::get();
-				AseetIDNFT::<T>::put(0);
+				let count = AssetIDNFT::<T>::get();
+				AssetIDNFT::<T>::put(0);
 
 			}
 			else if _asset_id == 1 {
 				//dog
 				let _result_dog = pallet_template::Pallet::<T>::create_dog(origin.clone());
 				println!("_result_dog {:?}",_result_dog);
-				let count = AseetIDNFT::<T>::get();
-				AseetIDNFT::<T>::put(1);
+				let count = AssetIDNFT::<T>::get();
+				AssetIDNFT::<T>::put(1);
 
 			}
-			else{
+
+			else if _asset_id > 1  {
+
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
+					(_asset_id as u64) < 1,
 					<Error<T>>::AssetIDisNotValidate
 				);
-
+			}		
+			else {
+				ensure!(
+					(_asset_id as u64) > 0,
+					<Error<T>>::AssetIDisNotValidate
+				);
 			}		
 			Self::deposit_event(Event::BlogPostCreated(content, author, blog_post_id));
 			Ok(())
 		}
 		
+		#[pallet::weight(10)]
+		pub fn createKittiesVote(
+			origin: OriginFor<T>,
+			blog_post_id: T::Hash,
+		) -> DispatchResult{
+			let kitty = ensure_signed(origin.clone())?;
+			Self::deposit_event(Event::KittiesVoted(kitty,blog_post_id));
+			Ok(())
+		}
+		
+		#[pallet::weight(10)]
+		pub fn createDogsVote(
+			origin: OriginFor<T>,
+			blog_post_id: T::Hash,
+		) -> DispatchResult{
+			let dog = ensure_signed(origin.clone())?;
+			Self::deposit_event(Event::DogsVoted(dog,blog_post_id));
+			Ok(())
+		}
+
+
+
 		#[pallet::weight(5000)]
 		pub fn create_blog_post_comment(
 				origin: OriginFor<T>,
@@ -278,7 +312,7 @@ pub mod pallet {
 			pub const MAX_TOTAL_KITTIES_VOTES: u64 = 5;
 			pub const MAX_TOTAL_DOGS_VOTES: u64 = 5;
 
-			let _asset_id = AseetIDNFT::<T>::get();
+			let _asset_id = AssetIDNFT::<T>::get();
 			if _asset_id == 0{
 				//kitties
 				 let author = ensure_signed(origin.clone())?;
@@ -304,26 +338,22 @@ pub mod pallet {
 				let mut dog_comment_vec: Vec<<T as frame_system::Config>::AccountId> = Vec::new();
 				dog_comment_vec.push(author);
 				<CounterComments<T>>::insert(blog_post_id, dog_comment_vec.clone());
-
-
-				//dog
-				let _result_dog = pallet_template::Pallet::<T>::create_kitty(origin.clone());
 			}
 			else if _asset_id <  0 {
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooLow
+					(_asset_id as u64) > 0,
+					<Error<T>>::AssetIDisNotValidate
 				);
 			}
 			else if _asset_id >  1 {
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooHigh
+					(_asset_id as u64) < 1,
+					<Error<T>>::AssetIDisNotValidate
 				);
 			}
 			else{
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
+					(_asset_id as u64) > 0,
 					<Error<T>>::AssetIDisNotValidate
 				);
 
@@ -357,6 +387,7 @@ pub mod pallet {
 
 				// Write total vote to storage
 				CountTotalVotes::<T>::put(new_count);
+				let author = ensure_signed(origin.clone())?;
 			}
 			else if _asset_id == 1 {
 				//dog
@@ -390,36 +421,38 @@ pub mod pallet {
 
 			else if _asset_id <  0 {
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooLow
+					(_asset_id as u64) > 0,
+					<Error<T>>::AssetIDisNotValidate
 				);
 			}
 			else if _asset_id >  1 {
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
-					<Error<T>>::AssetIDisTooHigh
+					(_asset_id as u64) < 1,
+					<Error<T>>::AssetIDisNotValidate
 				);
 			}
 			else{
 				ensure!(
-					(_asset_id as u64) > T::AssetId::get(),
+					(_asset_id as u64) < 1,
 					<Error<T>>::AssetIDisNotValidate
 				);
 
 			}
-			/*We are going to see which blogger gets to 5 votes first. 
-				Which ever blogger gets to 10 comments votes first will win  
-				or the blogger with the highest blog amount will win. If 
-				blogger has 2 different comments then they get the oopposite NFT.
-				If blogger minted a kity NFT then they would get the dog NFT.
-				IF blogger minted a dog NFT then they would get the kitty NFTt*/
-				let blogger_voters = CommenterVote::<T>::get(blog_post_id);
-				let blogger_comment_voters = CounterComments::<T>::get(blog_post_id);
-				for i in blogger_comment_voters {
-					println!("{:?}", i);
-					
-				}
-
+			/*Which ever blogger gets to 10 comments votes first will win  
+			or the blogger with the highest blog amount will win. If 
+			blogger has 2 different comments then they get the oopposite NFT.
+			If blogger minted a kity NFT then they would get the dog NFT.
+			IF blogger minted a dog NFT then they would get the kitty NFTt*/
+			let blogger_voters = CommenterVote::<T>::get(blog_post_id);
+			let blogger_comment_voters = CounterComments::<T>::get(blog_post_id);
+			for i in blogger_comment_voters {
+				println!("blogger_comment_voters: {:?}", i);
+				
+			}
+			for i in blogger_voters {
+				println!("blogger_comment_voters: {:?}", i);
+				
+			}
 
 			Ok(())
 		}
