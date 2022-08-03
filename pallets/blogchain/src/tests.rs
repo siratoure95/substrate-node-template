@@ -28,8 +28,6 @@ use crate as pallet_blogchain;
 		AssetIDisTooLow,
 		AssetIDisNotValidate,
 		TooManyVotes,
-		Not5CommentsNotFromAuthor,
-		NotTheBlogPoster,
 
 */
 
