@@ -5,6 +5,7 @@ use frame_system::ensure_signed;
 use sp_runtime::traits::{Bounded, Hash};
 use sp_core::H256;
 use crate::BlogPosts;
+use crate::BlogPost;
 // use crate as pallet_template;
 use crate as pallet_blogchain;
 
@@ -40,15 +41,22 @@ fn it_works_for_blog_post() {
 		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
 		assert_ok!(BlogModule::create_blog_post(Origin::signed(1), string_message.encode(),0));
 		let content = string_message.encode();
-		let author = ensure_signed(Origin::signed(1))?;
-		let hash_blog_post = BlogPost { content: content.clone(), author: author.clone() };
+		
+		let hash_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
 		let blog_post_id = <Test as frame_system::Config>::Hashing::hash_of(&string_message.encode());
+		
 		let encoded_blogpost = BlogPosts::<Test>::get(blog_post_id);
+		let decoded_blogpost = encoded_blogpost.encode();
+		let decoded_blogpost1 =vec![0];
+
+		let final_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
+		assert_eq!(decoded_blogpost,decoded_blogpost1);
+		
 		// let decoded_blogpost: BlogPost!
 		
 		// println!("{:?)", encoded_blogpost);
 // {12, 139, 191, 57, 48, 132, 14, 117, ...}
-		// assert_eq!(blogpost,);
+		
 	});
 }
 //Creates a Blog wrongly: BlogPostNotEnoughBytes
@@ -126,13 +134,24 @@ fn correct_blog_good_Tip_value() {
 		// Ensure the expected error is thrown when no value is present.
 		let string_message =  "Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services Bitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and servicesBitcoin Whitepaper - Written by Satoshi Nakamoto in 2008, it describes the original plan and protocol for Bitcoin. BitPay - BitPay is a payment processing company and software that allows merchants such as eBay, Amazon and other online shopping channels to accept bitcoin as payment for its goods and services";
 		assert_ok!(BlogModule::create_blog_post(Origin::signed(1), string_message.encode(),0));
+		let content = string_message.encode();
+		
+		let hash_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
+		let blog_post_id = <Test as frame_system::Config>::Hashing::hash_of(&string_message.encode());
+		
+		let encoded_blogpost = BlogPosts::<Test>::get(blog_post_id);
+		let decoded_blogpost = encoded_blogpost.encode();
+		let decoded_blogpost1 =vec![0];
 
-		let blog_post_id = <Test as frame_system::Config>::Hashing::hash_of(&string_message);
-		assert_ok!(BlogModule::tip_blog_post(Origin::signed(1), blog_post_id,20));
+		let final_blog_post = BlogPost::<Test>{ content: content.clone(), author: 1 };
+		assert_eq!(decoded_blogpost,decoded_blogpost1);
+
+		let result = BlogModule::tip_blog_post(Origin::signed(1), blog_post_id,20);
+		// assert_ok!(result);
 		// assert_noop!(BlogModule::create_blog_post(Origin::signed(1), string_message.encode(),0), Error::<Test>::BlogPostNotEnoughBytes);
 	});
 }
-//Creates a Blog wrongly: TipperIsAuthor NEED TO DO
+//Creates a Blog wrongly: TipperIsAuthor 
 #[test]
 fn correct_error_blog__not_good_Tip_value() {
 	new_test_ext().execute_with(|| {
