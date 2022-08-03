@@ -134,8 +134,6 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// An account may only own `MaxKittiesVotesOwned//MaxDogsVotesOwned` kitties and dogs.
-		TooManyOwned,
 		/// Error names should be descriptive.
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
@@ -148,8 +146,6 @@ pub mod pallet {
         TipperIsAuthor,
 		AssetIDisNotValidate,
 		TooManyVotes,
-		Not5CommentsNotFromAuthor,
-		NotTheBlogPoster,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -387,7 +383,6 @@ pub mod pallet {
 
 				// Write total vote to storage
 				CountTotalVotes::<T>::put(new_count);
-				let author = ensure_signed(origin.clone())?;
 			}
 			else if _asset_id == 1 {
 				//dog
@@ -450,7 +445,7 @@ pub mod pallet {
 				
 			}
 			for i in blogger_voters {
-				println!("blogger_comment_voters: {:?}", i);
+				println!("blogger_voters: {:?}", i);
 				
 			}
 

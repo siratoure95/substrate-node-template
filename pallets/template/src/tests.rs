@@ -1,6 +1,10 @@
 use super::*;
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
+use crate as pallet_template;
+use crate::Dogs;
+use crate::DogsOwned;
+use crate::Dog;
 
 // This function checks that kitty ownership is set correctly in storage.
 // This will panic if things are not correct.
@@ -17,6 +21,25 @@ fn assert_ownership(owner: u64, kitty_id: [u8; 16]) {
 		} else {
 			// Everyone else should not.
 			assert!(!owned.contains(&kitty_id));
+		}
+	}
+}
+
+// This function checks that kitty ownership is set correctly in storage.
+// This will panic if things are not correct.
+fn assert_dog_ownership(owner: u64, dog_id: [u8; 16]) {
+	// For a kitty to be owned it should exist.
+	let dog = Dogs::<Test>::get(dog_id).unwrap();
+	// The kitty's owner is set correctly.
+	assert_eq!(dog.owner, owner);
+
+	for (check_owner, owned) in DogsOwned::<Test>::iter() {
+		if owner == check_owner {
+			// Owner should have this kitty.
+			assert!(owned.contains(&dog_id));
+		} else {
+			// Everyone else should not.
+			assert!(!owned.contains(&dog_id));
 		}
 	}
 }
@@ -70,6 +93,28 @@ fn create_kitty_should_work() {
 		assert_ok!(SubstrateKitties::create_kitty(Origin::signed(10)));
 	});
 }
+#[test]
+fn create_dog_should_work() {
+	new_test_ext(vec![])
+	.execute_with(|| {
+		// Create a dog with account #10
+		assert_ok!(SubstrateKitties::create_dog(Origin::signed(10)));
+
+		// Check that now 3 dog exists
+		assert_eq!(CountForDogs::<Test>::get(), 1);
+
+		// Check that account #10 owns 1 dog
+		let dogs_owned = DogsOwned::<Test>::get(10);
+		assert_eq!(dogs_owned.len(), 1);
+		let id = dogs_owned.last().unwrap();
+		assert_dog_ownership(10, *id);
+
+		// Check that multiple create_kitty calls work in the same block.
+		// Increment extrinsic index to add entropy for DNA
+		frame_system::Pallet::<Test>::set_extrinsic_index(1);
+		assert_ok!(SubstrateKitties::create_dog(Origin::signed(10)));
+	});
+}
 
 #[test]
 fn create_kitty_fails() {
@@ -102,6 +147,36 @@ fn create_kitty_fails() {
 }
 
 #[test]
+fn create_dog_fails() {
+	// Check that create_dog fails when user owns too many kitties.
+	new_test_ext(vec![])
+	.execute_with(|| {
+		// Create `MaxDogsOwned` dogs with account #10
+		for _i in 0..<Test as Config>::MaxDogsOwned::get() {
+			assert_ok!(SubstrateKitties::create_dog(Origin::signed(10)));
+			// We do this because the hash of the dog depends on this for seed,
+			// so changing this allows you to have a different dog id
+			System::set_block_number(System::block_number() + 1);
+		}
+
+		// Can't create 1 more
+		assert_noop!(
+			SubstrateKitties::create_dog(Origin::signed(10)),
+			Error::<Test>::TooManyOwned
+		);
+
+		// Minting a dog with DNA that already exists should fail
+		let id = [0u8; 16];
+
+		// Mint new dog with `id`
+		assert_ok!(SubstrateKitties::mint_dog(&1, id, Gender::Male));
+
+		// Mint another kitty with the same `id` should fail
+		assert_noop!(SubstrateKitties::mint_dog(&1, id, Gender::Male), Error::<Test>::DuplicateDog);
+	});
+}
+
+#[test]
 fn transfer_kitty_should_work() {
 	new_test_ext(vec![])
 	.execute_with(|| {
@@ -120,9 +195,72 @@ fn transfer_kitty_should_work() {
 		assert_ownership(3, id);
 	});
 }
+#[test]
+fn transfer_dog_should_work() {
+	new_test_ext(vec![])
+	.execute_with(|| {
+		// Account 10 creates a kitty
+		assert_ok!(SubstrateKitties::create_dog(Origin::signed(10)));
+		let id = DogsOwned::<Test>::get(10)[0];
+
+		// and sends it to account 3
+		assert_ok!(SubstrateKitties::transfer_dog(Origin::signed(10), 3, id));
+
+		// Check that account 10 now has nothing
+		assert_eq!(DogsOwned::<Test>::get(10).len(), 0);
+
+		// but account 3 does
+		assert_eq!(DogsOwned::<Test>::get(3).len(), 1);
+		assert_dog_ownership(3, id);
+	});
+}
 
 #[test]
 fn transfer_kitty_should_fail() {
+	new_test_ext(vec![
+		(1, *b"1234567890123456", Gender::Female),
+		(2, *b"123456789012345a", Gender::Male),
+	])
+	.execute_with(|| {
+		// Get the DNA of some kitty
+		let dna = KittiesOwned::<Test>::get(1)[0];
+
+		// Account 9 cannot transfer a kitty with this DNA.
+		assert_noop!(
+			SubstrateKitties::transfer(Origin::signed(9), 2, dna),
+			Error::<Test>::NotOwner
+		);
+
+		// Check transfer fails when transferring to self
+		assert_noop!(
+			SubstrateKitties::transfer(Origin::signed(1), 1, dna),
+			Error::<Test>::TransferToSelf
+		);
+
+		// Check transfer fails when no kitty exists
+		let random_id = [0u8; 16];
+
+		assert_noop!(
+			SubstrateKitties::transfer(Origin::signed(2), 1, random_id),
+			Error::<Test>::NoKitty
+		);
+
+		// Check that transfer fails when max kitty is reached
+		// Create `MaxKittiesOwned` kitties for account #10
+		for _i in 0..<Test as Config>::MaxKittiesOwned::get() {
+			assert_ok!(SubstrateKitties::create_kitty(Origin::signed(10)));
+			System::set_block_number(System::block_number() + 1);
+		}
+
+		// Account #10 should not be able to receive a new kitty
+		assert_noop!(
+			SubstrateKitties::transfer(Origin::signed(1), 10, dna),
+			Error::<Test>::TooManyOwned
+		);
+	});
+}
+#[test]
+fn transfer_dogs_should_fail() {
 	new_test_ext(vec![
 		(1, *b"1234567890123456", Gender::Female),
 		(2, *b"123456789012345a", Gender::Male),
@@ -205,7 +343,84 @@ fn buy_kitty_works() {
 }
 
 #[test]
+fn buy_dog_works() {
+	new_test_ext(vec![
+		(1, *b"1234567890123456", Gender::Female),
+		(2, *b"123456789012345a", Gender::Male),
+		(3, *b"1234567890123451", Gender::Male),
+	])
+	.execute_with(|| {
+		// Check buy_kitty works as expected
+		let id = KittiesOwned::<Test>::get(2)[0];
+		let set_price = 4;
+		let balance_1_before = Balances::free_balance(&1);
+		let balance_2_before = Balances::free_balance(&2);
+
+		// Account #2 sets a price of 4 for their kitty
+		assert_ok!(SubstrateKitties::set_price(Origin::signed(2), id, Some(set_price)));
+
+		// Account #1 can buy account #2's kitty, specifying some limit_price
+		let limit_price = 6;
+		assert_ok!(SubstrateKitties::buy_kitty(Origin::signed(1), id, limit_price));
+
+		// Check balance transfer works as expected
+		let balance_1_after = Balances::free_balance(&1);
+		let balance_2_after = Balances::free_balance(&2);
+
+		// We use set_price as this is the amount actually being charged
+		assert_eq!(balance_1_before - set_price, balance_1_after);
+		assert_eq!(balance_2_before + set_price, balance_2_after);
+
+		// Now this kitty is not for sale, even from an account who can afford it
+		assert_noop!(
+			SubstrateKitties::buy_kitty(Origin::signed(3), id, set_price),
+			Error::<Test>::NotForSale
+		);
+	});
+}
+#[test]
 fn buy_kitty_fails() {
+	new_test_ext(vec![
+		(1, *b"1234567890123456", Gender::Female),
+		(2, *b"123456789012345a", Gender::Male),
+		(10, *b"1234567890123410", Gender::Male),
+	])
+	.execute_with(|| {
+		// Check buy_kitty fails when kitty is not for sale
+		let id = KittiesOwned::<Test>::get(1)[0];
+		// Kitty is not for sale
+		assert_noop!(
+			SubstrateKitties::buy_kitty(Origin::signed(2), id, 2),
+			Error::<Test>::NotForSale
+		);
+
+		// Check buy_kitty fails when bid price is too low
+		// New price is set to 4
+		let id = KittiesOwned::<Test>::get(2)[0];
+		let set_price = 4;
+		assert_ok!(SubstrateKitties::set_price(Origin::signed(2), id, Some(set_price)));
+
+		// Account #10 can't buy this kitty for half the asking price
+		assert_noop!(
+			SubstrateKitties::buy_kitty(Origin::signed(10), id, set_price / 2),
+			Error::<Test>::BidPriceTooLow
+		);
+
+		// Check buy_kitty fails when balance is too low
+		// Get the balance of account 10
+		let balance_of_account_10 = Balances::free_balance(&10);
+
+		// Reset the price to something higher than account 10's balance
+		assert_ok!(SubstrateKitties::set_price(Origin::signed(2), id, Some(balance_of_account_10*10)));
+
+		// Account 10 can't buy a kitty they can't afford
+		assert_noop!(
+			SubstrateKitties::buy_kitty(Origin::signed(10), id, balance_of_account_10*10),
+			pallet_balances::Error::<Test>::InsufficientBalance
+		);
+	});
+}
+fn buy_dog_fails() {
 	new_test_ext(vec![
 		(1, *b"1234567890123456", Gender::Female),
 		(2, *b"123456789012345a", Gender::Male),
