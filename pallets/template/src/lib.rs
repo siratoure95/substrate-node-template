@@ -382,9 +382,8 @@ pub mod pallet {
         fn gen_dna() -> ([u8; 16], Gender) {
             // Create randomness
             //println!("random");
-            // let random = T::KittyRandomness::random(&b"dna"[..]).0;
-            let random = 0;
-            //println!("random {:?}",random);
+            let random = T::KittyRandomness::random(&b"dna"[..]).0;
+            // let random = 0;
             // Create randomness payload. Multiple kitties can be generated in the same block,
             // retaining uniqueness.
             let unique_payload = (

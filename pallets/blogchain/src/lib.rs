@@ -436,7 +436,9 @@ pub mod pallet {
 			or the blogger with the highest blog amount will win. If 
 			blogger has 2 different comments then they get the oopposite NFT.
 			If blogger minted a kity NFT then they would get the dog NFT.
-			IF blogger minted a dog NFT then they would get the kitty NFTt*/
+			IF blogger minted a dog NFT then they would get the kitty NFT.
+			
+			Could not implement*/
 			let blogger_voters = CommenterVote::<T>::get(blog_post_id);
 			let blogger_comment_voters = CounterComments::<T>::get(blog_post_id);
 			// for i in blogger_comment_voters {
@@ -447,6 +449,7 @@ pub mod pallet {
 			// 	//println!("blogger_voters: {:?}", i);
 				
 			// }
+
 
 			Ok(())
 		}
